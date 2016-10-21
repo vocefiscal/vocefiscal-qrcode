@@ -185,11 +185,14 @@ int main(void) {
 
 	// abrir CSV com informacao dos qrcodes
 	std::ifstream lista_qrcodes;
-	lista_qrcodes.open("QRCode.csv");
+	lista_qrcodes.open("QRCode_base2.csv");
 	getline(lista_qrcodes, qrcode_info); // pular primeira linha cabecalho CSV
 
 	// pegar QRCodes
+	int counter = 0;
+	int com_assinatura = 0;
 	while(getline(lista_qrcodes, qrcode_info)) {
+		counter++;
 		struct qrcode QR;
 
 		QR.init(qrcode_info);
@@ -203,11 +206,13 @@ int main(void) {
 		std::cout << QR.conteudo << "++\n\n";
 		printf("end debug\n"); */
 		if (QR.assinatura != "") {
+			com_assinatura++;
 			teste_valida_assinatura(QR); 
 		} else {
 			printf("QR code sem assinatura\n");
 		}
 	}
+	printf("counter = %d, com_assinatura = %d, sem assinatura = %d\n", counter, com_assinatura, counter - com_assinatura);
 	lista_qrcodes.close();
 	return 0;
 }
