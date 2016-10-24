@@ -11,8 +11,8 @@ if (length(args) == 0 || length(args) == 1) {
 }
 
 
-N<-as.integer(args[1])          #### tamanho da população de urnas
-confianca<-as.double(args[2])  #### Confiança
+N<-as.numeric(args[1])          #### tamanho da população de urnas
+confianca<-as.numeric(args[2])  #### Confiança
 
 priori<-numeric(N)
 priori.0<- 0.5    #### priori 
