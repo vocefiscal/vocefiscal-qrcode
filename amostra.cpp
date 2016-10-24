@@ -1,3 +1,4 @@
+
 #include <stdio.h>
 #include <iostream>
 #include <fstream>
@@ -16,8 +17,8 @@ std::vector <std::string> tokenize(std::string s) {
 		if (s[i] == ',') {
 			if (a != "") {
 				v.push_back(a);
-				a = "";
 			}
+			a = "";
 		} else {
 			a += s[i];
 		}
@@ -25,6 +26,7 @@ std::vector <std::string> tokenize(std::string s) {
 	if (a != "") {
 		v.push_back(a);
 	}
+	//printf("here here size =  %d\n", (int)v.size());
 	return v;
 }
 
@@ -66,7 +68,7 @@ std::string get_val(std::string arq, std::string tag) {
 				aux += c;
 				arquivo.get(c);
 			}
-			std::cout << "here aux = " << aux << std::endl;
+			//std::cout << "here aux = " << aux << std::endl;
 			if (aux == tag) {
 				arquivo.get(c);
 				std::string res = "";
@@ -74,12 +76,12 @@ std::string get_val(std::string arq, std::string tag) {
 					res += c;
 					arquivo.get(c);
 				}
-				std::cout << "here res = " << res << std::endl;
+				//std::cout << "here res = " << res << std::endl;
 				return res;
 			}
 		}
 	}
-	printf("not found\n");
+	//printf("not found\n");
 	return ""; // nao achou
 }
 
@@ -107,14 +109,15 @@ void gerar_amostra(std::vector <std::vector <std::string> > locais_votacao, int 
 	std::ifstream arquivo; // arquivo com numero aleatorio gerado
 	std::ofstream query_nist; // arquivos com queries ao nist
 	std::set <int> used;
-	int timestamp = 1378595600; // TODO mudar timestamp para cada amostra
+	int timestamp = 1378606800; // TODO mudar timestamp para cada amostra
 
+	system("rm query_nist.txt"); // deletar arquivo caso exista para usar novo
 	query_nist.open("query_nist.txt");
 	// iniciar numeros aleatorios
-	std::string cmd = "curl -H \"Content-Type: application/xml\" -X GET https://beacon.nist.gov/rest/record/start-chain/";
+	std::string cmd = "curl -H \"Content-Type: application/xml\" -X GET https://beacon.nist.gov/rest/record/next/";
 	cmd += std::to_string(timestamp);
-	cmd += " > temp.txt";
 	query_nist << cmd; // append query ao nist no arquivo
+	cmd += " > temp.txt";
 	system(cmd.c_str());
 
 	// pegar valores 
@@ -124,7 +127,7 @@ void gerar_amostra(std::vector <std::vector <std::string> > locais_votacao, int 
 	int idx = get_rem(output, (int)locais_votacao.size());
 	used.insert(idx);
 	for (int i = 1; i < necessario; i++) {
-		printf("i = %d\n", i);
+		printf("got = %d\n", i);
 		//usar funcao aleatoria do NIST chamando-a atraves da linha de comando
 		cmd = "curl -H \"Content-Type: application/xml\" -X GET https://beacon.nist.gov/rest/record/next/";
 		cmd += std::to_string(timestamp);
@@ -140,7 +143,7 @@ void gerar_amostra(std::vector <std::vector <std::string> > locais_votacao, int 
 		if (used.find(idx) == used.end()) {
 			used.insert(idx);
 		} else {
-			i--; // pegar outro urna, essa ja foi sorteada
+			i--; // pegar outra urna, essa ja foi sorteada
 		}
 	}
 	query_nist.close();
@@ -153,9 +156,10 @@ void gerar_amostra(std::vector <std::vector <std::string> > locais_votacao, int 
 
 	// colocar a amostra num arquivo csv
 	std::ofstream arquivo_amostra;
+	system("rm arquivo_amostra.csv"); // deletar arquivo caso exista para usar novo
 	arquivo_amostra.open("arquivo_amostra.csv", std::ios::app);
 	
-	printf("size = %d\n", (int)amostra.size());
+	//printf("size amostra = %d\n", (int)amostra.size());
 	for (int i = 0; i < (int)amostra.size(); i++) {
 		std::string s = "";
 		for (int j = 0; j < (int)amostra[i].size(); j++) {
@@ -167,6 +171,7 @@ void gerar_amostra(std::vector <std::vector <std::string> > locais_votacao, int 
 		if (i != 0) {
 			arquivo_amostra << '\n';
 		}
+		//std::cout << s << std::endl;
 		arquivo_amostra << s;
 	}
 	arquivo_amostra.close();
@@ -174,7 +179,6 @@ void gerar_amostra(std::vector <std::vector <std::string> > locais_votacao, int 
 	return;
 }
 	
-
 int main(int argc, char * argv[]) {
 	if (argc == 1) {
 		printf("Deve ser passado um parametro, nome da cidade onde sera realizada a amostra\n");
@@ -182,6 +186,7 @@ int main(int argc, char * argv[]) {
 	}
 
 	std::string cidade = argv[1]; // cidade onde sera realizada a amostra
+	//std::cout << cidade << std::endl;
 	std::vector <std::vector <std::string> > lista_locais; // lista dos locais de votacao em tokens
 	std::ifstream locais_votacao; // arquivo com os locais de votacao
 	int populacao; // quantidade de urnas na cidade
@@ -189,27 +194,39 @@ int main(int argc, char * argv[]) {
 	
 	locais_votacao.open("locais_votacao.csv");
 	getline(locais_votacao, s); // pular primeira linha, cabecalho csv
+	int line = 0;
 	while(getline(locais_votacao, s)) {
+		line++;
+		//printf("line = %d\n", line);
 		std::vector<std::string> tokens = tokenize(s);
-		if (match(cidade, tokens[4])) { // o campo 4 eh o campo cidade
+		/*if (line >= 310272 && line <= 310274) {
+			for (int i = 0; i < (int)tokens.size(); i++) {
+				std::cout << tokens[i] << ',';
+			}
+			std::cout << std::endl;
+		}
+		if (line > 310274) {
+			break;
+		} */
+		if ((int)tokens.size() >= 5 && match(cidade, tokens[4])) { // o campo 4 eh o campo cidade
 			lista_locais.push_back(tokens);
 		}
 	}
 	populacao = (int)lista_locais.size();
+	//printf("populacao = %d\n", populacao);
 	
 	/* chamar programa R para calcular com 0.99 de confianca o numero de urnas necessarias na amostra
 		escrever resultado no arquivo temp.txt */
 	std::string cmd = "Rscript amostra.r "; 
 	cmd += std::to_string(populacao);
 	cmd += " 0.99 > temp.txt";
-	//system(cmd.c_str()); // chamar comando pelo terminal TODO descomentar no IC onde tem R
+	system(cmd.c_str()); // chamar comando pelo terminal TODO descomentar no IC onde tem R
 
-	//int necessario = get_int("temp.txt");
-	int necessario = 3;
-	//system("rm temp.txt");
-	printf("necessario = %d\n", necessario);
+	int necessario = get_int("temp.txt");
+	system("rm temp.txt");
+	printf("necessario = %d, pop = %d\n", necessario, populacao);
 	
 	gerar_amostra(lista_locais, necessario, cidade);
 	
 	return 0;
-}
+};
