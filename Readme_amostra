@@ -1,0 +1,19 @@
+	O código amostra.cpp gera a amostra para uma cidade passada como parâmetro na entrada.
+São criados os arquivos "arquivo_mostra.csv", correspondente à amostra e o arquivo
+"query_nist.txt" que corresponde às queries ao gerador de números aleatórios do NIST
+(https://beacon.nist.gov/home)
+
+	Para gerar o binario "amostra" o programa deve ser compilado como:
+	g++ amostra.cpp -std=c++11 -o amostra
+
+	O código amostra deve ser executado passando o nome de uma cidade a ser incluída na amostra (se considerarmos como exemplo FORTALEZA):
+	./amostra FORTALEZA
+
+	O código supõe que existe na mesma pasta um arquivo "locais_votacao.csv" que contém os locais de votação e o 
+script em R "amostra.r", este último responsável por calcular o tamanho da amostra mínima para se ter o valor 
+de confiança (passado como parâmetro para "amostra.r") esperado na transmissão dos resultados.
+Nessa primeira versão, para o código amostra.cpp, é importante que o nome passado como parâmetro seja exatamente igual ao escrito em "locais_votacao.csv".
+
+	Também supõe-se que não existe um arquivo temp.txt importante na pasta (e que portanto pode ser criado e 
+destruído arbitrariamente como temporário para guardar valores).
+	
