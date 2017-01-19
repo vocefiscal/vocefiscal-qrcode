@@ -6,13 +6,14 @@
 #include <string>
 #include <stdexcept>
 #include <fstream>
+#include "sha512.h"
 
 /*procura padrao pad em s e retorna a primeira posicao apos padrao */
 int search(std::string &s, std::string pad);
 
 struct qrcode {
 	std::string UF; // uniao federativa
-	std::string conteudo; 
+	std::string conteudo;
 	std::string hash;
 	std::string assinatura;
 
@@ -20,7 +21,7 @@ struct qrcode {
 	qrcode(std::string UF, std::string conteudo, std::string hash, std::string assinatura) {
 		this->UF = UF;
 		this->conteudo = conteudo;
-		this->hash = hash;	
+		this->hash = hash;
 		this->assinatura = assinatura;
 	}
 
@@ -32,7 +33,7 @@ struct qrcode {
 		UF += tolower(s[1]);
 
 		//std::cout << "starting here s = " << s << std::endl;
-	
+
 		// pegar hash
 		int start_hash = search(s, "HASH:");
 		hash = "";
@@ -51,9 +52,9 @@ struct qrcode {
 		int start_assi = search(s, "ASSI:");
 		for (int i = start_assi; i < (int)s.size() && isalnum(s[i]); i++) {
 			assinatura += s[i];
-		}	
+		}
 		return;
-	}	
+	}
 };
 
 
@@ -82,7 +83,7 @@ int get_num_qrcode(std::string s) {
 	sscanf(s.c_str() + start_num, " %*d:%d", &q);
 	return q;
 }
-	
+
 int atohex(int c) {
 	if (c >= '0' && c <= '9') {
 		return c - '0';
@@ -98,9 +99,6 @@ int atohex(int c) {
 
 std::vector<unsigned char> hex_to_bytes(const std::string &val) {
 	if (val.empty() || not std::all_of(val.begin(), val.end(), ::isxdigit)) {
-		if (val.empty()) {
-			printf("ahdauhsduasduhasdh\n");
-		}
 		throw std::logic_error("Erro\n");
 	}
 
@@ -145,7 +143,7 @@ int verificar_assinatura(std::vector<unsigned char> &assinatura, std::vector<uns
 	assinatura_com_dado_assinado.insert(assinatura_com_dado_assinado.end(), dado_a_ser_validado.begin(), dado_a_ser_validado.end());
 
 	unsigned long long tamanho_da_mensagem = dado_a_ser_validado.size();
-	return crypto_sign_open(dado_a_ser_validado.data(), &tamanho_da_mensagem, assinatura_com_dado_assinado.data(), assinatura_com_dado_assinado.size(), conteudo_chave_publica.data()); 
+	return crypto_sign_open(dado_a_ser_validado.data(), &tamanho_da_mensagem, assinatura_com_dado_assinado.data(), assinatura_com_dado_assinado.size(), conteudo_chave_publica.data());
 }
 
 void teste_valida_assinatura(struct qrcode &QR) {
@@ -162,26 +160,16 @@ void teste_valida_assinatura(struct qrcode &QR) {
 	} else {
 		printf("Erro na assinatura.\n");
 		exit(1);
-	}	
+	}
 	return;
 }
-	
+
 
 int main(void) {
 	std::string s; // arquivo de chave publica
 	std::string qrcode_info; // informacao do qr code
 	std::vector <std::string> chaves_publicas; // nome dos arquivos com chaves publicas
 
-
-	// criar arquivo com nomes das chaves
-	/*system("ls ./chavesqrcodeoficial > temp.txt");
-	std::ifstream lista_chaves_publicas;
-	lista_chaves_publicas.open("temp.txt");
-	while(getline(lista_chaves_publicas, s)) {
-		chaves_publicas.push_back(s);
-	}
-	lista_chaves_publicas.close();
-	system("rm temp.txt"); */
 
 	// abrir CSV com informacao dos qrcodes
 	std::ifstream lista_qrcodes;
@@ -191,28 +179,46 @@ int main(void) {
 	// pegar QRCodes
 	int counter = 0;
 	int com_assinatura = 0;
+	int hash_validos = 0;
+	std::string prev = ""; // string usada no calculo do hash
+	int next_index = 1; // proximo indice de QR em um BU
 	while(getline(lista_qrcodes, qrcode_info)) {
 		counter++;
 		struct qrcode QR;
 
 		QR.init(qrcode_info);
-		// debug QR code
-		/*printf("i = %d\n", i);
-		std::cout << qrcode_info << std::endl; */
-		/*printf("debug QR\n");
-		std::cout << QR.UF << "++\n\n";
-		std::cout << QR.hash << "++\n\n";
-		std::cout << QR.assinatura << "++\n\n"; 
-		std::cout << QR.conteudo << "++\n\n";
-		printf("end debug\n"); */
+		int start = search(qrcode_info, "QRBU:");
+		int index; // indice do QR no BU
+		sscanf(qrcode_info.c_str() + start, " %d", &index);
+		if (index != next_index) {
+			next_index = 1;
+			prev = "";
+		}
+		next_index++;
+		prev += QR.conteudo;
+
+		std::string aux = sha512(prev);
+		std::string aux2 = QR.hash;
+		/*std::cout << "prev=" << prev << std::endl;
+		std::cout << "aux=" << aux << std::endl;
+		std::cout << "aux2" << aux2 << std::endl; */
+		if (aux == aux2) {
+			printf("yay\n");
+			hash_validos++;
+		} else {
+			printf("HASH nao pode ser verificado\n");
+		}
+		prev += " HASH:";
+		prev += QR.hash;
+		prev += " ";
 		if (QR.assinatura != "") {
 			com_assinatura++;
-			teste_valida_assinatura(QR); 
+			teste_valida_assinatura(QR);
 		} else {
 			printf("QR code sem assinatura\n");
 		}
 	}
-	printf("counter = %d, com_assinatura = %d, sem assinatura = %d\n", counter, com_assinatura, counter - com_assinatura);
+	printf("counter = %d, hash_validos = %d, com_assinatura = %d, sem assinatura = %d\n", counter, hash_validos, com_assinatura, counter - com_assinatura);
 	lista_qrcodes.close();
 	return 0;
 }
