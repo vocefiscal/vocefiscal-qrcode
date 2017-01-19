@@ -1,0 +1,9 @@
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$HOME/lib
+export C_INCLUDE_PATH=$C_INCLUDE_PATH:$HOME/include
+export CPLUS_INCLUDE_PATH=$CPLUS_INCLUDE_PATH:$HOME/include
+export C_PATH=$C_PATH/include
+export PATH=$PATH:/home
+
+export PATH=$PATH:$HOME/bin
+export LIBRARY_PATH=$LIBRAY_PATH:$HOME/lib
+export PKG_CONFIG_PATH=$PKG_CONFIG_PATH:$HOME/lib/pkgconfig/
